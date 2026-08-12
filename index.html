@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Six Minute Diary</title>
+<meta name="description" content="A quiet two-minute morning and evening journal.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Literata:ital,wght@0,400;0,500;1,400&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<!--
+  ================================================================
+  SETUP — read this before hosting
+  ================================================================
+  This app syncs your entries across devices and gates access
+  behind a real password, using Firebase (free tier, no card
+  needed). One-time setup, about 5 minutes:
+
+  1. Go to https://console.firebase.google.com, sign in with any
+     Google account, click "Add project", give it any name.
+  2. In the project, click the "</>" (web) icon to register a web
+     app. Skip Firebase Hosting — you're using GitHub Pages.
+  3. You'll see a firebaseConfig object. Copy the six values into
+     the FIREBASE_CONFIG block below, replacing the placeholders.
+  4. In the left sidebar: Build → Authentication → Get started →
+     enable "Email/Password" as a sign-in provider.
+  5. In the left sidebar: Build → Firestore Database → Create
+     database → start in production mode → pick any region.
+  6. In Firestore, go to the "Rules" tab and replace the rules
+     with the block below (this keeps your entries private —
+     only you, signed in, can read or write them). Click Publish.
+
+     rules_version = '2';
+     service cloud.firestore {
+       match /databases/{database}/documents {
+         match /diaries/{uid} {
+           allow read, write: if request.auth != null && request.auth.uid == uid;
+         }
+       }
+     }
+
+  7. Save this file, upload to GitHub, done. Open the live URL,
+     click "Create account", set your own email + password —
+     that's the password gate for your public site.
+
+  The config values below are not secret (they identify your
+  project, not authenticate anyone) — it's normal and safe for
+  them to sit in public HTML. The Firestore rules above are what
+  actually keep your entries private.
+  ================================================================
+-->
+<script type="module">
+  window.FIREBASE_CONFIG = {
+    apiKey: "PASTE_API_KEY_HERE",
+    authDomain: "PASTE_AUTH_DOMAIN_HERE",
+    projectId: "PASTE_PROJECT_ID_HERE",
+    storageBucket: "PASTE_STORAGE_BUCKET_HERE",
+    messagingSenderId: "PASTE_SENDER_ID_HERE",
+    appId: "PASTE_APP_ID_HERE"
+  };
+</script>
+
+<style>
+  :root{
+    --ink: #2B2A28;
+    --ink-soft: #6b665e;
+    --paper: #F3F1EC;
+    --paper-raised: #FCFBF8;
+    --line: #DDD8CE;
+    --amber: #D98B3F;
+    --amber-soft: #F3DCBB;
+    --indigo: #45518C;
+    --indigo-soft: #D9DEF0;
+    --sage: #6E8F72;
+    --sage-soft: #DCE7DD;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(43,42,40,0.06), 0 6px 20px rgba(43,42,40,0.05);
+  }
+
+  * { box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Literata', Georgia, serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,h2,h3, .display{
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    margin: 0;
+  }
+
+  .ui, button, input, textarea, select, nav, .eyebrow, .meta{
+    font-family: 'Work Sans', system-ui, sans-serif;
+  }
+
+  a { color: inherit; }
+
+  .wrap{
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 28px 20px 80px;
+  }
+
+  header.top{ padding-top: 6px; margin-bottom: 22px; }
+
+  .eyebrow{
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 10px;
+  }
+
+  h1.app-title{ font-size: clamp(28px, 5vw, 38px); margin-bottom: 4px; }
+  .app-sub{ color: var(--ink-soft); font-size: 15px; margin-bottom: 22px; }
+
+  .horizon{
+    position: relative;
+    height: 46px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--indigo-soft) 0%, var(--amber-soft) 50%, var(--indigo-soft) 100%);
+    overflow: hidden;
+    margin-bottom: 20px;
+    border: 1px solid var(--line);
+  }
+  .horizon::before{
+    content:"";
+    position:absolute; inset:0;
+    background: linear-gradient(90deg, var(--indigo) 0%, var(--amber) 50%, var(--indigo) 100%);
+    opacity: 0.16;
+  }
+  .horizon .marker{
+    position:absolute; top: 50%;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--paper-raised);
+    box-shadow: 0 0 0 3px var(--paper), 0 2px 6px rgba(0,0,0,0.15);
+    transform: translate(-50%,-50%);
+    transition: left 0.6s ease;
+  }
+
+  .banner{
+    font-family:'Work Sans', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 20px;
+  }
+  .banner.warn{ background: #F7E6E0; color: #7a3220; border: 1px solid #E8B9A8; }
+  .banner.info{ background: var(--indigo-soft); color: #2c3560; border: 1px solid #c3ccea; }
+  .banner.sync{ background: var(--sage-soft); color: #3c5340; border: 1px solid #c2d6c4; }
+
+  /* ---------- Auth screen ---------- */
+  .auth-card{
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 26px 24px;
+    box-shadow: var(--shadow);
+    max-width: 380px;
+    margin: 40px auto;
+  }
+  .auth-card h2{ font-size: 22px; margin-bottom: 6px; }
+  .auth-card .sub{ color: var(--ink-soft); font-size: 14px; margin-bottom: 20px; }
+  .field{ margin-bottom: 14px; }
+  .field label{
+    display:block; font-family:'Work Sans', sans-serif;
+    font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--ink);
+  }
+  .field input{
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: 'Work Sans', sans-serif;
+    font-size: 14px;
+    background: #fff;
+    color: var(--ink);
+  }
+  .auth-actions{ display:flex; flex-direction:column; gap: 10px; margin-top: 18px; }
+  .auth-toggle{
+    background:none; border:none; cursor:pointer;
+    font-family:'Work Sans', sans-serif; font-size: 13px;
+    color: var(--ink-soft); text-decoration: underline; text-underline-offset: 3px;
+    padding: 0; text-align: center;
+  }
+  .auth-toggle:hover{ color: var(--ink); }
+  .auth-error{
+    font-family:'Work Sans', sans-serif; font-size: 13px;
+    color: #a8402a; margin-top: 10px; display:none;
+  }
+  .auth-error.show{ display:block; }
+
+  /* ---------- Nav ---------- */
+  nav.tabs{
+    display:flex; gap: 6px; flex-wrap: wrap;
+    margin-bottom: 26px;
+    border-bottom: 1px solid var(--line);
+  }
+  nav.tabs button{
+    appearance:none; border:none; background: transparent;
+    color: var(--ink-soft); font-size: 14px; font-weight: 500;
+    padding: 10px 4px; margin-right: 18px; cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  nav.tabs button:hover{ color: var(--ink); }
+  nav.tabs button.active{ color: var(--ink); border-bottom-color: var(--amber); }
+  nav.tabs button:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible{
+    outline: 2px solid var(--indigo); outline-offset: 2px;
+  }
+
+  .view{ display:none; }
+  .view.active{ display:block; animation: fadein 0.35s ease; }
+  @keyframes fadein{ from{opacity:0; transform: translateY(4px);} to{opacity:1; transform:none;} }
+
+  .card{
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 22px 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 18px;
+  }
+  .card-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    gap: 12px; margin-bottom: 4px; flex-wrap: wrap;
+  }
+  .period-tag{
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:'Work Sans', sans-serif; font-size: 12px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px;
+  }
+  .period-tag.morning{ background: var(--amber-soft); color: #7a4c14; }
+  .period-tag.evening{ background: var(--indigo-soft); color: #2c3560; }
+  .period-tag.weekly{ background: var(--sage-soft); color: #3c5340; }
+
+  .date-line{ font-family:'Work Sans', sans-serif; font-size: 13px; color: var(--ink-soft); }
+  .switch-period{
+    background:none; border:none; cursor:pointer;
+    font-family:'Work Sans', sans-serif; font-size: 13px; color: var(--ink-soft);
+    text-decoration: underline; text-underline-offset: 3px; padding: 0;
+  }
+  .switch-period:hover{ color: var(--ink); }
+
+  .prompt{ margin-top: 20px; }
+  .prompt label{
+    display:block; font-family:'Fraunces', serif; font-size: 17px;
+    font-weight: 500; margin-bottom: 8px; color: var(--ink);
+  }
+  .prompt .hint{
+    font-family:'Work Sans', sans-serif; font-size: 12px;
+    color: var(--ink-soft); margin-bottom: 8px; margin-top: -4px;
+  }
+  textarea{
+    width: 100%; min-height: 64px; resize: vertical;
+    border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; font-family: 'Literata', serif; font-size: 15px;
+    color: var(--ink); background: #fff; line-height: 1.5;
+  }
+  textarea::placeholder{ color: #b7b1a4; }
+
+  .save-row{ display:flex; align-items:center; gap: 14px; margin-top: 20px; flex-wrap: wrap; }
+  button.primary{
+    appearance:none; border:none; background: var(--ink); color: var(--paper-raised);
+    font-family:'Work Sans', sans-serif; font-weight: 600; font-size: 14px;
+    padding: 11px 20px; border-radius: 999px; cursor:pointer;
+    transition: transform 0.12s ease, background 0.15s ease;
+  }
+  button.primary:hover{ background:#000; }
+  button.primary:active{ transform: scale(0.98); }
+  button.primary:disabled{ opacity: 0.5; cursor: default; }
+
+  .saved-note{
+    font-family:'Work Sans', sans-serif; font-size: 13px; color: var(--sage);
+    opacity: 0; transition: opacity 0.3s ease;
+  }
+  .saved-note.show{ opacity: 1; }
+
+  .history-item{
+    border: 1px solid var(--line); border-radius: 12px;
+    background: var(--paper-raised); margin-bottom: 10px; overflow: hidden;
+  }
+  .history-item summary{
+    list-style:none; cursor:pointer; padding: 14px 16px;
+    display:flex; align-items:center; justify-content:space-between; gap: 10px;
+    font-family:'Work Sans', sans-serif;
+  }
+  .history-item summary::-webkit-details-marker{ display:none; }
+  .history-item summary .hs-left{ display:flex; align-items:center; gap:10px; }
+  .history-item summary .chev{ transition: transform 0.2s ease; color: var(--ink-soft); }
+  .history-item[open] summary .chev{ transform: rotate(90deg); }
+  .history-body{ padding: 0 16px 16px; border-top: 1px solid var(--line); }
+  .history-body .qa{ margin-top: 14px; }
+  .history-body .qa .q{
+    font-family:'Fraunces', serif; font-size: 14.5px; font-weight: 500;
+    color: var(--ink-soft); margin-bottom: 3px;
+  }
+  .history-body .qa .a{ font-size: 15px; white-space: pre-wrap; }
+  .history-body .qa .a.empty{ color: #b7b1a4; font-style: italic; }
+
+  .empty-state{ text-align:center; padding: 46px 20px; color: var(--ink-soft); }
+  .empty-state .glyph{ font-size: 26px; margin-bottom: 10px; }
+
+  .weekly-list{ counter-reset: q; }
+  .weekly-list .prompt{ counter-increment: q; position:relative; padding-left: 30px; }
+  .weekly-list .prompt::before{
+    content: counter(q); position:absolute; left:0; top: 1px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--sage-soft); color: #3c5340;
+    font-family:'Work Sans', sans-serif; font-size: 12px; font-weight: 600;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  .res-section{ margin-bottom: 26px; }
+  .res-section h2{ font-size: 21px; margin-bottom: 10px; }
+  .res-section p{ margin: 0 0 10px; color: var(--ink); }
+  .res-section ul{ margin: 0 0 10px; padding-left: 20px; }
+  .res-section li{ margin-bottom: 6px; }
+  .res-tag{
+    display:inline-block; font-family:'Work Sans', sans-serif; font-size: 11px;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 8px;
+  }
+
+  footer.util{
+    margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line);
+    display:flex; align-items:center; justify-content:space-between; gap: 12px; flex-wrap: wrap;
+  }
+  .util-buttons{ display:flex; gap: 10px; flex-wrap: wrap; }
+  button.ghost{
+    appearance:none; background: transparent; border: 1px solid var(--line);
+    color: var(--ink-soft); font-family:'Work Sans', sans-serif; font-size: 13px;
+    padding: 8px 14px; border-radius: 999px; cursor:pointer;
+  }
+  button.ghost:hover{ color: var(--ink); border-color: var(--ink-soft); }
+  #import-input{ display:none; }
+  .footprint{ font-family:'Work Sans', sans-serif; font-size: 12px; color: var(--ink-soft); }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+  @media (max-width: 480px){
+    .wrap{ padding: 20px 16px 64px; }
+    footer.util{ flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow">A quiet six minutes, twice a day</div>
+    <h1 class="app-title">Six Minute Diary</h1>
+    <p class="app-sub">Three minutes in the morning. Three in the evening. That's the whole practice.</p>
+    <div class="horizon" id="horizon" aria-hidden="true"><div class="marker" id="horizon-marker"></div></div>
+    <div class="banner warn" id="config-warning" style="display:none;" role="alert"></div>
+    <div class="banner warn" id="storage-warning" style="display:none;" role="alert"></div>
+    <div class="banner sync" id="sync-note" style="display:none;" role="status"></div>
+  </header>
+
+  <!-- AUTH -->
+  <section id="auth-screen" style="display:none;">
+    <div class="auth-card">
+      <h2 id="auth-title">Welcome back</h2>
+      <p class="sub" id="auth-sub">Sign in to sync your diary across devices.</p>
+      <form id="auth-form">
+        <div class="field">
+          <label for="auth-email">Email</label>
+          <input type="email" id="auth-email" autocomplete="email" required>
+        </div>
+        <div class="field">
+          <label for="auth-password">Password</label>
+          <input type="password" id="auth-password" autocomplete="current-password" required minlength="6">
+        </div>
+        <div class="auth-actions">
+          <button type="submit" class="primary" id="auth-submit">Sign in</button>
+          <button type="button" class="auth-toggle" id="auth-toggle">New here? Create an account instead</button>
+        </div>
+        <div class="auth-error" id="auth-error"></div>
+      </form>
+    </div>
+  </section>
+
+  <!-- APP -->
+  <div id="app-screen" style="display:none;">
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="active" data-view="today" role="tab" aria-selected="true">Today</button>
+      <button data-view="weekly" role="tab" aria-selected="false">Weekly Discovery</button>
+      <button data-view="history" role="tab" aria-selected="false">History</button>
+      <button data-view="resources" role="tab" aria-selected="false">Resources</button>
+    </nav>
+
+    <section class="view active" id="view-today">
+      <div class="card">
+        <div class="card-head">
+          <span class="period-tag" id="period-tag">Morning</span>
+          <span class="date-line" id="date-line"></span>
+        </div>
+        <button class="switch-period" id="switch-period" type="button">Fill in the evening entry instead</button>
+        <form id="today-form">
+          <div id="today-prompts"></div>
+          <div class="save-row">
+            <button type="submit" class="primary" id="save-btn">Save entry</button>
+            <span class="saved-note" id="saved-note">Saved ✓</span>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="view" id="view-weekly">
+      <div class="card">
+        <div class="card-head">
+          <span class="period-tag weekly">Weekly Discovery</span>
+          <span class="date-line" id="week-line"></span>
+        </div>
+        <p class="app-sub" style="margin:10px 0 0;">Five questions, once a week. Slower, and a little deeper than the daily ones.</p>
+        <form id="weekly-form">
+          <div class="weekly-list" id="weekly-prompts"></div>
+          <div class="save-row">
+            <button type="submit" class="primary" id="weekly-save-btn">Save this week's answers</button>
+            <span class="saved-note" id="weekly-saved-note">Saved ✓</span>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="view" id="view-history">
+      <div id="history-list"></div>
+    </section>
+
+    <section class="view" id="view-resources">
+      <div class="card">
+        <div class="res-section">
+          <div class="res-tag">Why this works</div>
+          <h2>Gratitude</h2>
+          <p>Gratitude practice is simply the habit of noticing what's already good, on purpose, instead of waiting for your attention to land there by chance. Research on the practice (much of it from psychologists Robert Emmons and Michael McCullough) links regular gratitude journaling to better mood, better sleep, and fewer physical complaints — not because life becomes different, but because attention does.</p>
+          <p>It works best small and specific. "My coffee this morning" beats "my health" — concrete details are easier for your brain to actually re-experience, which is where the mood benefit comes from.</p>
+          <ul>
+            <li>Name the specific moment, not the general category.</li>
+            <li>Include a person when you can — gratitude toward people has a stronger effect than gratitude toward circumstances.</li>
+            <li>It's fine to repeat things. Consistency matters more than novelty.</li>
+          </ul>
+        </div>
+        <div class="res-section">
+          <div class="res-tag">A place to start</div>
+          <h2>Meditation</h2>
+          <p>Meditation is attention training — repeatedly noticing when your mind has wandered and gently bringing it back. That's the whole mechanism; the "clearing your mind" idea is a myth that stops a lot of people before they start.</p>
+          <p>A simple way in, no app required:</p>
+          <ul>
+            <li>Sit comfortably, eyes closed or softly focused on one spot.</li>
+            <li>Breathe normally. Rest your attention on the feeling of air moving in and out.</li>
+            <li>When you notice your mind has wandered (it will, constantly), just return to the breath. That return is the practice — not a failure of it.</li>
+            <li>Start with 3–5 minutes. Duration matters far less than showing up regularly.</li>
+          </ul>
+        </div>
+        <div class="res-section">
+          <div class="res-tag">Worth knowing</div>
+          <h2>A few other things that help</h2>
+          <p><strong>Journaling itself</strong> — separate from gratitude — has its own evidence base for stress reduction, largely because putting a feeling into words (called "affect labeling") reduces its intensity in the brain.</p>
+          <p><strong>Sleep and mood are a two-way street.</strong> An evening reflection like this one, done at a consistent time, can double as a wind-down cue that signals to your body it's time to slow down.</p>
+          <p><strong>Consistency beats intensity.</strong> Six minutes every day will change how you feel far more than an hour once a month. If you miss a day, the practice isn't broken — just pick it back up tomorrow.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="util">
+      <span class="footprint" id="signed-in-as"></span>
+      <div class="util-buttons">
+        <button class="ghost" id="export-btn" type="button">Export backup</button>
+        <button class="ghost" id="import-btn" type="button">Import backup</button>
+        <input type="file" id="import-input" accept="application/json">
+        <button class="ghost" id="signout-btn" type="button">Sign out</button>
+      </div>
+    </footer>
+  </div>
+
+</div>
+
+<!-- Firebase (compat build: works with plain script tags, no bundler needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+
+<script>
+(function(){
+  "use strict";
+
+  var MORNING_PROMPTS = [
+    { id: "m1", q: "I am grateful for…", hint: "Be specific — a moment, not a category." },
+    { id: "m2", q: "What would make today great?" },
+    { id: "m3", q: "Daily affirmation: I am…" }
+  ];
+  var EVENING_PROMPTS = [
+    { id: "e1", q: "My good deed today…" },
+    { id: "e2", q: "Today I learned…" },
+    { id: "e3", q: "Great things I experienced today…" }
+  ];
+  var WEEKLY_PROMPTS = [
+    { id: "w1", q: "What's something I've been avoiding, and why?" },
+    { id: "w2", q: "Who made a positive impact on my life this week?" },
+    { id: "w3", q: "What's a fear I'd like to overcome?" },
+    { id: "w4", q: "What did I do this week that felt truly me?" },
+    { id: "w5", q: "What's one thing I want to let go of?" }
+  ];
+
+  var LOCAL_KEY = "sixMinuteDiary.localBackup.v1";
+
+  function pad(n){ return n < 10 ? "0"+n : ""+n; }
+  function todayKey(d){ d = d || new Date(); return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()); }
+  function formatDate(d){ return d.toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' }); }
+  function isoWeekKey(d){
+    d = d || new Date();
+    var date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    var dayNum = (date.getUTCDay() + 6) % 7;
+    date.setUTCDate(date.getUTCDate() - dayNum + 3);
+    var firstThursday = new Date(Date.UTC(date.getUTCFullYear(),0,4));
+    var week = 1 + Math.round(((date - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay()+6)%7)) / 7);
+    return date.getUTCFullYear() + "-W" + pad(week);
+  }
+  function escapeHtml(s){
+    return s.replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+  }
+
+  function showBanner(id, html){
+    var el = document.getElementById(id);
+    el.innerHTML = html;
+    el.style.display = 'block';
+  }
+  function hideBanner(id){ document.getElementById(id).style.display = 'none'; }
+
+  function paintHorizon(){
+    var hour = new Date().getHours() + new Date().getMinutes()/60;
+    document.getElementById('horizon-marker').style.left = (hour/24*100) + '%';
+  }
+  paintHorizon();
+
+  // ---------- config check ----------
+  var config = window.FIREBASE_CONFIG || {};
+  var configReady = config.apiKey && config.apiKey.indexOf("PASTE_") !== 0;
+
+  if (!configReady){
+    showBanner('config-warning',
+      "This copy isn't connected to a Firebase project yet, so it can't sync or require a password. " +
+      "Open the file, find the FIREBASE_CONFIG block near the top, and paste in your project's config values " +
+      "(see the setup comment right above it). Until then the app won't load."
+    );
+    return; // don't try to boot Firebase with placeholder config
+  }
+
+  var app = firebase.initializeApp(config);
+  var auth = firebase.auth();
+  var db = firebase.firestore();
+
+  var currentUser = null;
+  var diary = { daily: {}, weekly: {} };
+  var currentPeriod = (new Date().getHours() < 17) ? "morning" : "evening";
+  var unsubscribeSnapshot = null;
+
+  // ---------- auth screen ----------
+  var authScreen = document.getElementById('auth-screen');
+  var appScreen = document.getElementById('app-screen');
+  var authForm = document.getElementById('auth-form');
+  var authTitle = document.getElementById('auth-title');
+  var authSub = document.getElementById('auth-sub');
+  var authSubmit = document.getElementById('auth-submit');
+  var authToggle = document.getElementById('auth-toggle');
+  var authError = document.getElementById('auth-error');
+  var mode = 'signin';
+
+  function setAuthMode(next){
+    mode = next;
+    if (mode === 'signin'){
+      authTitle.textContent = 'Welcome back';
+      authSub.textContent = 'Sign in to sync your diary across devices.';
+      authSubmit.textContent = 'Sign in';
+      authToggle.textContent = "New here? Create an account instead";
+    } else {
+      authTitle.textContent = 'Create your diary';
+      authSub.textContent = 'This password is what keeps your entries private on a public site — choose one you don\u2019t reuse elsewhere.';
+      authSubmit.textContent = 'Create account';
+      authToggle.textContent = 'Already have an account? Sign in instead';
+    }
+    authError.classList.remove('show');
+  }
+  authToggle.addEventListener('click', function(){ setAuthMode(mode === 'signin' ? 'signup' : 'signin'); });
+  setAuthMode('signin');
+
+  authForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    var email = document.getElementById('auth-email').value.trim();
+    var password = document.getElementById('auth-password').value;
+    authError.classList.remove('show');
+    authSubmit.disabled = true;
+
+    var task = mode === 'signin'
+      ? auth.signInWithEmailAndPassword(email, password)
+      : auth.createUserWithEmailAndPassword(email, password);
+
+    task.catch(function(err){
+      authError.textContent = friendlyAuthError(err);
+      authError.classList.add('show');
+    }).finally(function(){
+      authSubmit.disabled = false;
+    });
+  });
+
+  function friendlyAuthError(err){
+    var code = err && err.code || '';
+    if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') return "That password doesn't match. Try again, or check for typos.";
+    if (code === 'auth/user-not-found') return "No account with that email yet — try 'Create an account instead' below.";
+    if (code === 'auth/email-already-in-use') return "That email already has an account — try signing in instead.";
+    if (code === 'auth/weak-password') return "Password needs to be at least 6 characters.";
+    if (code === 'auth/invalid-email') return "That doesn't look like a valid email address.";
+    return err && err.message ? err.message : "Something went wrong. Please try again.";
+  }
+
+  document.getElementById('signout-btn').addEventListener('click', function(){
+    auth.signOut();
+  });
+
+  // ---------- firestore sync ----------
+  function docRefFor(uid){ return db.collection('diaries').doc(uid); }
+
+  function startSync(uid){
+    if (unsubscribeSnapshot) unsubscribeSnapshot();
+    unsubscribeSnapshot = docRefFor(uid).onSnapshot(function(snap){
+      if (snap.exists){
+        var data = snap.data() || {};
+        diary.daily = data.daily || {};
+        diary.weekly = data.weekly || {};
+      } else {
+        diary = { daily: {}, weekly: {} };
+      }
+      hideBanner('storage-warning');
+      renderToday();
+      renderWeekly();
+      var historyView = document.getElementById('view-history');
+      if (historyView.classList.contains('active')) renderHistory();
+      showBanner('sync-note', 'Synced ✓ — this device is up to date with your account.');
+      setTimeout(function(){ hideBanner('sync-note'); }, 2000);
+    }, function(err){
+      showBanner('storage-warning', "Couldn't reach your synced diary (" + (err && err.message ? err.message : 'connection issue') + "). Check your internet connection — entries won't save until this reconnects.");
+    });
+  }
+
+  function writeDiary(){
+    return docRefFor(currentUser.uid).set(diary, { merge: false })
+      .then(function(){ return true; })
+      .catch(function(err){
+        showBanner('storage-warning', "Couldn't save — " + (err && err.message ? err.message : 'connection issue') + ". Your entry is still in the box above, try Save again once you're back online.");
+        return false;
+      });
+  }
+
+  auth.onAuthStateChanged(function(user){
+    currentUser = user;
+    if (user){
+      authScreen.style.display = 'none';
+      appScreen.style.display = 'block';
+      document.getElementById('signed-in-as').textContent = 'Signed in as ' + user.email;
+      startSync(user.uid);
+    } else {
+      if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+      appScreen.style.display = 'none';
+      authScreen.style.display = 'block';
+      hideBanner('sync-note');
+      hideBanner('storage-warning');
+    }
+  });
+
+  // ---------- nav ----------
+  var tabs = document.querySelectorAll('nav.tabs button');
+  tabs.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      tabs.forEach(function(b){ b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-selected','true');
+      document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+      document.getElementById('view-' + btn.dataset.view).classList.add('active');
+      if (btn.dataset.view === 'history') renderHistory();
+    });
+  });
+
+  // ---------- today ----------
+  var periodTag = document.getElementById('period-tag');
+  var dateLine = document.getElementById('date-line');
+  var switchBtn = document.getElementById('switch-period');
+  var promptsWrap = document.getElementById('today-prompts');
+  var savedNote = document.getElementById('saved-note');
+
+  function promptsFor(period){ return period === 'morning' ? MORNING_PROMPTS : EVENING_PROMPTS; }
+
+  function renderToday(){
+    var now = new Date();
+    dateLine.textContent = formatDate(now);
+    periodTag.textContent = currentPeriod === 'morning' ? 'Morning' : 'Evening';
+    periodTag.className = 'period-tag ' + currentPeriod;
+    switchBtn.textContent = currentPeriod === 'morning' ? "Fill in the evening entry instead" : "Fill in the morning entry instead";
+
+    var key = todayKey(now);
+    var entry = (diary.daily[key] && diary.daily[key][currentPeriod]) || {};
+    promptsWrap.innerHTML = '';
+    promptsFor(currentPeriod).forEach(function(p){
+      var div = document.createElement('div');
+      div.className = 'prompt';
+      var hintHtml = p.hint ? '<div class="hint">' + p.hint + '</div>' : '';
+      div.innerHTML = '<label for="'+p.id+'">'+p.q+'</label>' + hintHtml + '<textarea id="'+p.id+'" name="'+p.id+'" placeholder="Write a line or two…"></textarea>';
+      promptsWrap.appendChild(div);
+      div.querySelector('textarea').value = entry[p.id] || '';
+    });
+    savedNote.classList.remove('show');
+  }
+
+  switchBtn.addEventListener('click', function(){
+    currentPeriod = currentPeriod === 'morning' ? 'evening' : 'morning';
+    renderToday();
+  });
+
+  document.getElementById('today-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var key = todayKey();
+    var entry = {};
+    promptsFor(currentPeriod).forEach(function(p){ entry[p.id] = document.getElementById(p.id).value; });
+    if (!diary.daily[key]) diary.daily[key] = {};
+    diary.daily[key][currentPeriod] = entry;
+    diary.daily[key].date = key;
+    var btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    writeDiary().then(function(ok){
+      btn.disabled = false;
+      if (ok){
+        savedNote.classList.add('show');
+        setTimeout(function(){ savedNote.classList.remove('show'); }, 2200);
+      }
+    });
+  });
+
+  // ---------- weekly ----------
+  var weekLine = document.getElementById('week-line');
+  var weeklyPromptsWrap = document.getElementById('weekly-prompts');
+  var weeklySavedNote = document.getElementById('weekly-saved-note');
+
+  function renderWeekly(){
+    var wk = isoWeekKey();
+    weekLine.textContent = 'Week ' + wk.split('-W')[1] + ', ' + wk.split('-W')[0];
+    var entry = diary.weekly[wk] || {};
+    weeklyPromptsWrap.innerHTML = '';
+    WEEKLY_PROMPTS.forEach(function(p){
+      var div = document.createElement('div');
+      div.className = 'prompt';
+      div.innerHTML = '<label for="'+p.id+'">'+p.q+'</label><textarea id="'+p.id+'" name="'+p.id+'" placeholder="Take your time…"></textarea>';
+      weeklyPromptsWrap.appendChild(div);
+      div.querySelector('textarea').value = entry[p.id] || '';
+    });
+  }
+
+  document.getElementById('weekly-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    var wk = isoWeekKey();
+    var entry = {};
+    WEEKLY_PROMPTS.forEach(function(p){ entry[p.id] = document.getElementById(p.id).value; });
+    diary.weekly[wk] = entry;
+    var btn = document.getElementById('weekly-save-btn');
+    btn.disabled = true;
+    writeDiary().then(function(ok){
+      btn.disabled = false;
+      if (ok){
+        weeklySavedNote.classList.add('show');
+        setTimeout(function(){ weeklySavedNote.classList.remove('show'); }, 2200);
+      }
+    });
+  });
+
+  // ---------- history ----------
+  function qaBlock(p, value){
+    var hasVal = value && value.trim().length > 0;
+    return '<div class="qa"><div class="q">'+p.q+'</div><div class="a'+(hasVal?'':' empty')+'">'+ (hasVal ? escapeHtml(value) : 'Not answered') +'</div></div>';
+  }
+
+  function renderHistory(){
+    var list = document.getElementById('history-list');
+    var dailyKeys = Object.keys(diary.daily).sort().reverse();
+    var weeklyKeys = Object.keys(diary.weekly).sort().reverse();
+
+    if (dailyKeys.length === 0 && weeklyKeys.length === 0){
+      list.innerHTML = '<div class="empty-state"><div class="glyph">◌</div>Nothing saved yet. Your first entry will show up here, on every device you sign into.</div>';
+      return;
+    }
+
+    var html = '';
+    dailyKeys.forEach(function(key){
+      var day = diary.daily[key];
+      var d = new Date(key + 'T00:00:00');
+      html += '<details class="history-item"><summary><span class="hs-left"><span class="chev">›</span><strong class="ui">'+formatDate(d)+'</strong></span></summary><div class="history-body">';
+      if (day.morning){
+        html += '<div class="date-line" style="margin-top:12px;">Morning</div>';
+        MORNING_PROMPTS.forEach(function(p){ html += qaBlock(p, day.morning[p.id] || ''); });
+      }
+      if (day.evening){
+        html += '<div class="date-line" style="margin-top:16px;">Evening</div>';
+        EVENING_PROMPTS.forEach(function(p){ html += qaBlock(p, day.evening[p.id] || ''); });
+      }
+      html += '</div></details>';
+    });
+
+    if (weeklyKeys.length){
+      html += '<div class="eyebrow" style="margin:26px 0 10px;">Weekly Discovery</div>';
+      weeklyKeys.forEach(function(wk){
+        var entry = diary.weekly[wk];
+        html += '<details class="history-item"><summary><span class="hs-left"><span class="chev">›</span><strong class="ui">Week '+wk.split('-W')[1]+', '+wk.split('-W')[0]+'</strong></span></summary><div class="history-body" style="padding-top:4px;">';
+        WEEKLY_PROMPTS.forEach(function(p){ html += qaBlock(p, entry[p.id] || ''); });
+        html += '</div></details>';
+      });
+    }
+    list.innerHTML = html;
+  }
+
+  // ---------- export / import (still useful as an offline backup) ----------
+  document.getElementById('export-btn').addEventListener('click', function(){
+    var blob = new Blob([JSON.stringify(diary, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'six-minute-diary-backup-' + todayKey() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  var importInput = document.getElementById('import-input');
+  document.getElementById('import-btn').addEventListener('click', function(){ importInput.click(); });
+  importInput.addEventListener('change', function(){
+    var file = importInput.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      try{
+        var incoming = JSON.parse(reader.result);
+        if (!incoming.daily) incoming.daily = {};
+        if (!incoming.weekly) incoming.weekly = {};
+        Object.keys(incoming.daily).forEach(function(k){ diary.daily[k] = Object.assign({}, diary.daily[k], incoming.daily[k]); });
+        Object.keys(incoming.weekly).forEach(function(k){ diary.weekly[k] = Object.assign({}, diary.weekly[k], incoming.weekly[k]); });
+        writeDiary().then(function(ok){
+          if (ok){ renderToday(); renderWeekly(); renderHistory(); alert('Backup imported and synced.'); }
+        });
+      }catch(err){
+        alert('That file could not be read as a diary backup.');
+      }
+      importInput.value = '';
+    };
+    reader.readAsText(file);
+  });
+
+})();
+</script>
+</body>
+</html>
